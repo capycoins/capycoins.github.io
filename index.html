@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>capycoins – play tiny games, earn capycoins</title>
+<meta name="description" content="capycoins is a cozy capybara arcade. Play minigames and earn capycoins.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐹</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chewy&family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fff4e6; --peach:#ffdcc4; --pink:#ffb7c5; --matcha:#bfe3b4; --butter:#ffe08a;
+  --water:#9fd8e8; --cocoa:#4a2c1d; --cocoa-soft:#7a5240; --capy:#c9915f;
+  --display:'Chewy','Baloo 2','Comic Sans MS','Chalkboard SE',cursive;
+  --body:'Fredoka','Arial Rounded MT Bold','Nunito','Trebuchet MS',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; font-family:var(--body); color:var(--cocoa); font-size:1.1rem; line-height:1.55;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,183,197,.35) 0 2px, transparent 3px) 0 0/46px 46px,
+    radial-gradient(circle at 70% 70%, rgba(255,224,138,.45) 0 2px, transparent 3px) 0 0/46px 46px,
+    linear-gradient(180deg,#fff0dc 0%,#ffe3cf 55%,#ffd3c0 100%);
+  background-attachment:fixed;
+}
+a{color:inherit}
+:focus-visible{outline:4px solid var(--pink); outline-offset:3px; border-radius:14px}
+.wrap{max-width:1080px; margin:0 auto; padding:0 22px}
+
+header{display:flex; align-items:center; justify-content:space-between; padding:20px 0; gap:14px; flex-wrap:wrap}
+.logo{font-family:var(--display); font-size:2.2rem; text-decoration:none; letter-spacing:.5px; line-height:1}
+.logo .a{color:var(--cocoa)} .logo .b{color:#e8788f}
+nav{display:flex; gap:22px; font-weight:500}
+nav a{text-decoration:none; padding:4px 2px; border-bottom:3px dotted transparent}
+nav a:hover{border-color:var(--pink)}
+
+.hero{display:grid; grid-template-columns:1.1fr .9fr; gap:30px; align-items:center; padding:30px 0 60px}
+h1{font-family:var(--display); font-weight:400; font-size:clamp(2.6rem,6vw,4.4rem); line-height:1.05; margin:0 0 16px}
+.lead{max-width:34ch; color:var(--cocoa-soft); font-size:1.25rem; margin:0 0 28px}
+.cta-row{display:flex; gap:14px; flex-wrap:wrap; align-items:center}
+.btn{
+  font-family:var(--body); font-weight:600; font-size:1.15rem; text-decoration:none; display:inline-block;
+  padding:15px 26px; border-radius:999px; border:3px solid var(--cocoa);
+  background:var(--butter); color:var(--cocoa); box-shadow:0 5px 0 var(--cocoa);
+  transition:transform .12s, box-shadow .12s;
+}
+.btn:hover{transform:translateY(-2px); box-shadow:0 7px 0 var(--cocoa)}
+.btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--cocoa)}
+.btn.soft{background:#fff; box-shadow:0 5px 0 var(--cocoa-soft); border-color:var(--cocoa-soft)}
+.btn.soft:hover{box-shadow:0 7px 0 var(--cocoa-soft)}
+
+.scene{position:relative; max-width:420px; margin:0 auto; width:100%}
+.scene svg{width:100%; height:auto; display:block; overflow:visible}
+.steam{position:absolute; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.75); filter:blur(3px); animation:rise 4.5s ease-in infinite; opacity:0}
+.steam:nth-of-type(1){left:18%; bottom:34%} .steam:nth-of-type(2){left:46%; bottom:30%; animation-delay:1.5s}
+.steam:nth-of-type(3){left:76%; bottom:36%; animation-delay:3s}
+@keyframes rise{0%{transform:translateY(0) scale(.6); opacity:0} 20%{opacity:.9} 100%{transform:translateY(-120px) scale(1.5); opacity:0}}
+
+section{padding:30px 0 50px}
+h2{font-family:var(--display); font-weight:400; font-size:clamp(2rem,4vw,2.8rem); margin:0 0 8px}
+.sub{margin:0 0 28px; color:var(--cocoa-soft)}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:20px}
+.card{
+  background:rgba(255,255,255,.8); border:3px solid var(--cocoa); border-radius:26px; padding:22px;
+  position:relative; display:flex; flex-direction:column; gap:6px; text-decoration:none;
+}
+.card h3{font-family:var(--display); font-weight:400; font-size:1.6rem; margin:6px 0 0; line-height:1.1}
+.card p{margin:0; color:var(--cocoa-soft); font-size:1rem}
+.card .thumb{width:46px; height:auto; display:block}
+.card .emoji{font-size:2.4rem; line-height:1}
+.card:nth-child(odd){transform:rotate(-1deg)} .card:nth-child(even){transform:rotate(1deg)}
+.tag{align-self:flex-start; margin-top:auto; padding:4px 12px; border-radius:999px; font-size:.9rem; font-weight:600; background:var(--peach); border:2px solid var(--cocoa)}
+.card.live{background:var(--matcha); box-shadow:0 6px 0 var(--cocoa)}
+.card.live:hover{transform:rotate(0) translateY(-3px)}
+.card.live .tag{background:var(--butter)}
+
+.how{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:20px}
+.how div{background:var(--pink); border:3px solid var(--cocoa); border-radius:26px; padding:20px 22px}
+.how div:nth-child(2){background:var(--butter)} .how div:nth-child(3){background:var(--matcha)}
+.how b{font-family:var(--display); font-weight:400; font-size:1.5rem; display:block}
+.how span{font-size:1rem}
+.rate{text-align:center; margin-top:26px; font-size:1.2rem}
+
+footer{text-align:center; padding:30px 0 40px; color:var(--cocoa-soft); font-size:1rem}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr; text-align:center; padding-top:10px}
+  .lead{margin-inline:auto} .cta-row{justify-content:center}
+  nav{gap:16px}
+}
+@media (prefers-reduced-motion:reduce){ .steam{animation:none} html{scroll-behavior:auto} .btn,.card{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="logo" href="index.html" aria-label="capycoins home"><span class="a">capy</span><span class="b">coins</span></a>
+    <nav aria-label="Main">
+      <a href="#games">Games</a>
+      <a href="#how">How it works</a>
+      <a href="capybara_clicker.html">Clicker</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Play tiny games. Earn capycoins.</h1>
+        <p class="lead">A cozy little arcade where every game puts a few more coins in your pocket. Hop in, it's warm.</p>
+        <div class="cta-row">
+          <a class="btn" href="capybara_clicker.html">BETA: Try capybara clicker</a>
+          <a class="btn soft" href="#games">See all games</a>
+        </div>
+      </div>
+
+      <div class="scene" aria-hidden="true">
+        <svg viewBox="0 0 300 270">
+                    <ellipse cx="150" cy="205" rx="148" ry="58" fill="#f0c9a4" stroke="#4a2c1d" stroke-width="4"/>
+          <ellipse cx="150" cy="200" rx="132" ry="46" fill="#7ec8dc"/>
+          <clipPath id="above"><rect x="0" y="0" width="300" height="200"/></clipPath>
+          <image href="capybara.png" x="65" y="28" width="170" height="222" clip-path="url(#above)"/>
+          <ellipse cx="150" cy="200" rx="132" ry="46" fill="#9fd8e8" opacity=".96"/>
+          <path d="M60 205 q15 -8 30 0 t30 0 t30 0 t30 0 t30 0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+          <ellipse cx="150" cy="200" rx="132" ry="46" fill="none" stroke="#4a2c1d" stroke-width="4"/>
+        </svg>
+        <span class="steam"></span><span class="steam"></span><span class="steam"></span>
+      </div>
+    </div>
+
+    <section id="games">
+      <h2>The games</h2>
+      <p class="sub">One playable now, more soaking in the spring.</p>
+      <div class="grid">
+        <a class="card live" href="capybara_clicker.html">
+          <img class="thumb" src="capybara.png" alt="" width="46" height="60"><h3>Capybara Clicker</h3>
+          <p>Pet the capybara, collect cents, and watch your capycoins grow.</p>
+          <span class="tag">BETA · play now</span>
+        </a>
+        <div class="card">
+          <span class="emoji">🌿</span><h3>Capybara Conquest</h3>
+          <p>A cozy platformer. Hop, climb, and explore.</p>
+          <span class="tag">Coming soon</span>
+        </div>
+        <div class="card">
+          <span class="emoji">💪</span><h3>No Pain No Gain</h3>
+          <p>The classic, now with a very determined capybara.</p>
+          <span class="tag">Coming soon</span>
+        </div>
+        <div class="card">
+          <span class="emoji">🏃</span><h3>Capybara Dash</h3>
+          <p>An endless runner. Jump the cacti, keep the streak.</p>
+          <span class="tag">Coming soon</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How capycoins work</h2>
+      <p class="sub">Simple, soft, and a little bit addictive.</p>
+      <div class="how">
+        <div><b>Play</b><span>Pick any minigame and jump in.</span></div>
+        <div><b>Earn cents</b><span>Clicks, jumps, and high scores all add cents.</span></div>
+        <div><b>Collect capycoins</b><span>100 cents makes 1 capycoin.</span></div>
+      </div>
+      <p class="rate"><a class="btn" href="capybara_clicker.html">BETA: Try capybara clicker</a></p>
+    </section>
+  </main>
+
+  <footer>made with love, oranges, and warm water · capycoins</footer>
+</div>
+</body>
+</html>
