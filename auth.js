@@ -1,3 +1,4 @@
+
 // 1. Sign Up a new user
 async function handleSignUp() {
   const email = document.getElementById('email-input').value;
@@ -6,12 +7,15 @@ async function handleSignUp() {
   const { data, error } = await supabaseClient.auth.signUp({
     email: email,
     password: password,
+    options: {
+      emailRedirectTo: 'https://imperialcapybara.github.io/capycoins/'
+    }
   });
 
   if (error) {
     alert("Sign up failed: " + error.message);
   } else {
-    alert("Success! Check your email to confirm your account (or try logging in).");
+    alert("Success! Check your email to confirm your account.");
   }
 }
 
@@ -35,7 +39,12 @@ async function handleSignIn() {
 
 // 3. Log Out
 async function handleSignOut() {
-  await supabaseClient.auth.signOut();
-  // Send them back to the home page
-  window.location.href = 'index.html';
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    alert("Logout failed: " + error.message);
+  } else {
+    // Send them back to the home page
+    window.location.href = 'index.html';
+  }
 }
