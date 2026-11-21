@@ -124,6 +124,7 @@ dialog .row{margin-top:18px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
+<script src="account.js"></script>
 <script>
 
 const root=document.documentElement,mb=document.getElementById('mode');
@@ -132,8 +133,20 @@ let saved='day';try{saved=localStorage.getItem('capycoins_time')||'day'}catch(e)
 setTime(saved);mb.addEventListener('click',()=>setTime(root.dataset.time==='night'?'day':'night'));
 
 const $=id=>document.getElementById(id),scene=$('scene'),capy=$('capy'),bubble=$('bubble');
-try{const w=JSON.parse(localStorage.getItem('capycoins_wallet_v1')||'null');
- if(w&&w.total>0)$('note').innerHTML='Welcome back! You have <b>'+(w.total/100).toFixed(2)+' capycoins</b>. <a href="play.html">See your dashboard</a>';}catch(e){}
+function setNote(){
+ let total=0;try{const w=JSON.parse(localStorage.getItem('capycoins_wallet_v1')||'null');total=(w&&w.total)||0;}catch(e){}
+ const A=window.CapyAccount,name=A&&A.profile&&A.profile.username,n=$('note');
+ if(A&&A.user){
+  n.textContent='';
+  n.append(name?'Welcome back, ':'Welcome back! ');
+  if(name){const b=document.createElement('b');b.textContent=name;n.append(b,'! ');}
+  n.append('You have ');const c=document.createElement('b');c.textContent=(total/100).toFixed(2)+' capycoins';n.append(c,' saved to your account. ');
+  const a=document.createElement('a');a.href='play.html';a.textContent='See your dashboard';n.append(a);
+ }else if(total>0){
+  n.innerHTML='Welcome back! You have <b>'+(total/100).toFixed(2)+' capycoins</b>. <a href="play.html">See your dashboard</a>';
+ }
+}
+setNote();addEventListener('capy-wallet-changed',setNote);addEventListener('capy-account',setNote);
 const lines=['Boop! 🧡','The water is perfect today.','Have you tried fishing?','Oranges make everything better.','100¢ makes 1 capycoin!','Psst… the stack game is wobbly.','Five games are ready for you!','Five more minutes in the spring…'];
 const specials={5:'Five boops! We are friends now.',15:'You are my favorite human!',30:'Okay okay, go play a game! 🎮',50:'Fifty boops. Legend.'};
 let boops=0,hideT=null,li=0;
@@ -175,12 +188,13 @@ addEventListener('pointermove',e=>{const s=document.documentElement.style;s.setP
   finally{go.disabled=false;}
  });
  function render(session){
-  const box=$('auth');
-  if(session&&session.user){
+  const box=$('auth'),A=window.CapyAccount,user=(A&&A.user)||(session&&session.user)||null;
+  if(user){
    box.textContent='';
-   const who=document.createElement('span');who.className='who';who.textContent='Hi, '+session.user.email;who.title=session.user.email;
-   const out=document.createElement('button');out.className='pill';out.type='button';out.textContent='Sign out';out.addEventListener('click',()=>handleSignOut());
-   box.append(who,out);
+   const name=A&&A.profile&&A.profile.username;
+   const who=document.createElement('span');who.className='who';who.textContent='Hi, '+(name||user.email);who.title=user.email;box.append(who);
+   if(A&&A.supported&&A.profile){const nb=document.createElement('button');nb.className='pill';nb.type='button';nb.textContent=name?'Change name':'Pick a username';nb.addEventListener('click',()=>A.promptUsername(false));box.append(nb);}
+   const out=document.createElement('button');out.className='pill';out.type='button';out.textContent='Sign out';out.addEventListener('click',()=>handleSignOut());box.append(out);
   }else{
    box.innerHTML='<button class="pill" type="button" data-auth="in">Sign in</button><button class="pill fill" type="button" data-auth="up">Sign up</button>';
   }
@@ -188,6 +202,7 @@ addEventListener('pointermove',e=>{const s=document.documentElement.style;s.setP
  if(ready){
   client.auth.getSession().then(r=>render(r.data&&r.data.session)).catch(()=>{});
   client.auth.onAuthStateChange((_e,s)=>render(s));
+  if(window.CapyAccount)CapyAccount.onChange(()=>render());
  }
 })();
 </script>
