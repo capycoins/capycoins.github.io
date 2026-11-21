@@ -230,7 +230,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
     const w=ORANGE_W*z.s, h=ORANGE_H*z.s, last=stack[stack.length-1];
     const top=last?last.y-last.h/2:BASE_Y;                  // top surface of the tower
     active={x:BASE_X-dir*SWING, y:SWING_Y-cameraY, targetY:top+h*.14-h/2,
-            vx:dir*Math.min(2.6+score*.09,6), vy:0, mode:'SWING', sx:1, sy:1, z:z, w:w, h:h};
+            vx:dir*Math.min(2.6+score*.11,7.5), vy:0, mode:'SWING', sx:1, sy:1, z:z, w:w, h:h};
   }
   function startGame(){
     SFX.init();
