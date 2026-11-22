@@ -116,6 +116,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
 .plist div{border:2px solid var(--cocoa);border-radius:14px;padding:8px 4px;text-align:center;background:#fff;line-height:1.2}
 .plist b{font-family:var(--display);font-weight:400;font-size:1.5rem;display:block}.plist small{color:var(--soft);display:block}
 </style><script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -155,7 +157,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
   try{localStorage.setItem(KEY,JSON.stringify(w));}catch(e){}}
  const getSpin=()=>{try{return JSON.parse(localStorage.getItem(SPIN)||'null')||{};}catch(e){return {};}};
  const spunToday=()=>getSpin().last===dkey();
- const showBal=()=>{$('bal').textContent=(readW().total/100).toFixed(2);};
+ const showBal=()=>{$('bal').textContent=CC(readW().total);};
  addEventListener('capy-wallet-changed',showBal);
 
  /* sound + toast */

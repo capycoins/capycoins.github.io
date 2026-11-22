@@ -124,6 +124,8 @@ main{padding-bottom:30px}
 @media (max-width:760px){ .top{grid-template-columns:1fr} }
 </style>
 <script src="theme.js"></script>
+<script src="format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="wrap">
@@ -237,7 +239,7 @@ main{padding-bottom:30px}
   var KEY='capycoins_wallet_v1', OLD='capycoins_clicker_v1';
   var $=function(id){return document.getElementById(id)};
   var n=function(v){return (v|0).toLocaleString()};
-  var coins=function(c){return (c/100).toFixed(2)};
+  var coins=function(c){return CC(c)};
   function dkey(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 
   function load(){
@@ -256,7 +258,7 @@ main{padding-bottom:30px}
 
   function render(){
     var w=load(), rem=w.total%100, i, d, k, v;
-    $('bal').textContent=coins(w.total);
+    $('bal').textContent=coins(w.total); $('bal').title=CapyFormat?CapyFormat.exact(w.total)+' capycoins':'';
     $('balc').textContent=n(w.total);
     $('togo').textContent=100-rem;
     $('fill').style.width=rem+'%';

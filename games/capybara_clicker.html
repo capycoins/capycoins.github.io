@@ -65,6 +65,8 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
 @media (prefers-reduced-motion:reduce){ .pop{animation-duration:.01s} .toast{transition:none} }
 </style>
 <script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite">+1 capycoin!</div>
@@ -135,7 +137,7 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
 
   function render(){
     var rem=cents%100;
-    elCoins.textContent=(cents/100).toFixed(2);
+    elCoins.textContent=CC(cents);
     elCents.textContent=cents.toLocaleString();
     elTogo.textContent=100-rem;
     elFill.style.width=rem+'%';

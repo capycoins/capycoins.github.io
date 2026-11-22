@@ -83,6 +83,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
 .snd{background:none; border:0; font:inherit; font-size:.95rem; color:var(--cocoa-soft); text-decoration:underline dotted; cursor:pointer; margin-left:10px}
 </style>
 <script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -214,9 +216,9 @@ canvas{aspect-ratio:640/520; touch-action:none}
 
   function updateUI(){
     $('score').textContent=score;
-    $('runEarned').textContent='+'+(runCents/100).toFixed(2);
+    $('runEarned').textContent='+'+CC(runCents);
     $('best').textContent=getBest(); $('nextm').textContent=5-score%5;
-    $('bal').textContent=(readWallet().total/100).toFixed(2);
+    $('bal').textContent=CC(readWallet().total);
   }
   function burst(x,y,color,n){
     for(let i=0;i<n;i++){
@@ -246,7 +248,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
   function endGame(msg){
     state='OVER'; overAt=performance.now(); SFX.topple(); saveBest(score); updateUI();
     $('ovt').textContent='Tower toppled!';
-    $('ovp').textContent=msg+' You stacked '+score+' orange'+(score===1?'':'s')+' and earned +'+(runCents/100).toFixed(2)+' capycoins!';
+    $('ovp').textContent=msg+' You stacked '+score+' orange'+(score===1?'':'s')+' and earned +'+CC(runCents)+' capycoins!';
     $('ovg').textContent='Click, tap, or press Space to play again';
     setTimeout(()=>{ if(state==='OVER') ov.classList.remove('hide'); },550);
   }

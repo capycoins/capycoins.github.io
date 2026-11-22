@@ -80,7 +80,10 @@ dialog input{width:100%;font:inherit;padding:10px 14px;border:3px solid var(--co
 dialog .row{margin-top:18px}
 .linkish{background:none;border:0;font:inherit;color:var(--soft);text-decoration:underline dotted;cursor:pointer;padding:0;margin-top:14px;font-size:.95rem}
 .x{position:absolute;right:16px;top:12px;background:none;border:0;font-size:1.7rem;line-height:1;cursor:pointer;color:var(--cocoa)}
-</style></head><body>
+</style>
+<script src="format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
+</head><body>
 <div class="hills" aria-hidden="true"></div>
 <span class="fly" style="left:12%;top:30%"></span><span class="fly" style="left:80%;top:20%;animation-delay:-2s"></span><span class="fly" style="left:55%;top:60%;animation-delay:-4s"></span><span class="fly" style="left:30%;top:75%;animation-delay:-1s"></span>
 <div class="wrap">
@@ -140,10 +143,10 @@ function setNote(){
   n.textContent='';
   n.append(name?'Welcome back, ':'Welcome back! ');
   if(name){const b=document.createElement('b');b.textContent=name;n.append(b,'! ');}
-  n.append('You have ');const c=document.createElement('b');c.textContent=(total/100).toFixed(2)+' capycoins';n.append(c,' saved to your account. ');
+  n.append('You have ');const c=document.createElement('b');c.textContent=CC(total)+' capycoins';n.append(c,' saved to your account. ');
   const a=document.createElement('a');a.href='play.html';a.textContent='See your dashboard';n.append(a);
  }else if(total>0){
-  n.innerHTML='Welcome back! You have <b>'+(total/100).toFixed(2)+' capycoins</b>. <a href="play.html">See your dashboard</a>';
+  n.innerHTML='Welcome back! You have <b>'+CC(total)+' capycoins</b>. <a href="play.html">See your dashboard</a>';
  }
 }
 setNote();addEventListener('capy-wallet-changed',setNote);addEventListener('capy-account',setNote);

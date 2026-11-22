@@ -86,6 +86,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
 @media (prefers-reduced-motion:reduce){ .hearts i.pulse{animation:none} }
 </style>
 <script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="wrap">
@@ -176,7 +178,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
     keep.forEach(function(x){d2[x]=w.days[x]}); w.days=d2;
     try{localStorage.setItem(KEY,JSON.stringify(w));}catch(e){}
   }
-  function showBalance(){$('bal').textContent=(readWallet().total/100).toFixed(2)}
+  function showBalance(){$('bal').textContent=CC(readWallet().total)}
 
   /* ---------- state ---------- */
   var state='ready', score=0, lives=LIVES, best=0, t=0, spawnT=0, lastX=W/2, bx=W/2, target=W/2, sq=0, shake=0, overAt=0, last=0;

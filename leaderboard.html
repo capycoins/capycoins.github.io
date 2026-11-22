@@ -61,7 +61,10 @@ html[data-time=night] .status{color:#f3d9e6}
 .refresh{display:block;margin:20px auto 0}
 @media (max-width:520px){.av{width:56px;height:56px;font-size:1.6rem}.first .av{width:72px;height:72px;font-size:2.2rem}.nm{font-size:.95rem}.cc{font-size:1.1rem}.step{font-size:2.2rem}}
 @media (prefers-reduced-motion:reduce){.step,.crown{animation:none}}
-</style></head><body>
+</style>
+<script src="format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
+</head><body>
 <div class="wrap">
 <header>
  <a class="logo" href="index.html" aria-label="capycoins home"><span>capy</span><span class="b">coins</span></a>
@@ -89,7 +92,8 @@ setTime(saved);mb.addEventListener('click',()=>setTime(root.dataset.time==='nigh
 
 const $=id=>document.getElementById(id);
 let client=null;try{client=supabaseClient;}catch(e){}
-const fmt=c=>(Number(c)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt=c=>CC(Number(c));
+const exact=c=>(window.CapyFormat?CapyFormat.exact(c):(Number(c)/100).toFixed(2))+' capycoins';
 const meName=()=>{const A=window.CapyAccount;return A&&A.profile&&A.profile.username?A.profile.username.toLowerCase():null;};
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
 
@@ -98,7 +102,7 @@ function slot(cls,medal,place,p){
  if(medal==='first')s.append(el('span','crown','👑'));
  s.append(el('div','av',p?p.username.charAt(0).toUpperCase():'?'));
  s.append(el('div','nm',p?p.username:'Be the first!'));
- const cc=el('div','cc',p?fmt(p.total_cents):'–');if(p)cc.append(el('small','', 'capycoins'));s.append(cc);
+ const cc=el('div','cc',p?fmt(p.total_cents):'–');if(p){cc.append(el('small','', 'capycoins'));cc.title=exact(p.total_cents);}s.append(cc);
  s.append(el('div','step',String(place)));
  return s;
 }
@@ -110,7 +114,7 @@ function render(rows){
  const list=$('list'),me=meName();list.textContent='';
  rows.slice(3).forEach(r=>{
   const li=el('li','row'+(me&&r.username.toLowerCase()===me?' me':''));
-  li.append(el('span','n','#'+r.rank),el('span','u',r.username),el('span','c',fmt(r.total_cents)));list.append(li);});
+  const ce=el('span','c',fmt(r.total_cents));ce.title=exact(r.total_cents);li.append(el('span','n','#'+r.rank),el('span','u',r.username),ce);list.append(li);});
  $('status').textContent=rows.length?'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · top '+rows.length:'No one is on the board yet. Sign in, pick a username and earn some capycoins!';
  banner(rows);
 }

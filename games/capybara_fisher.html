@@ -112,6 +112,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
 @media (prefers-reduced-motion:reduce){ .item.new{animation:none} .btn{transition:none} }
 </style>
 <script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -183,7 +185,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
   ];
   const BY_KEY={}; let TOTAL_W=0; LOOT.forEach(l=>{BY_KEY[l.k]=l; TOTAL_W+=l.w;});
   const BITE_WINDOW=1.4;                    // seconds you have to click once the bobber starts bobbing a lot
-  const fmt=c=>c<100?c+'¢':(c/100).toFixed(2)+(c===100?' capycoin':' capycoins');
+  const fmt=c=>c<100?c+'¢':CC(c)+(c===100?' capycoin':' capycoins');
   function roll(){let r=Math.random()*TOTAL_W; for(const l of LOOT){r-=l.w; if(r<=0) return l;} return LOOT[0];}
 
   /* ---------- shared wallet ---------- */
@@ -225,8 +227,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
     const v=bagValue(); $('sellAll').disabled=!v; $('sellAll').textContent=v?'Sell all for '+fmt(v):'Sell all';
   }
   function updateUI(){
-    $('bal').textContent=(readWallet().total/100).toFixed(2);
-    $('bagval').textContent=(bagValue()/100).toFixed(2);
+    $('bal').textContent=CC(readWallet().total);
+    $('bagval').textContent=CC(bagValue());
     $('caught').textContent=caught;
   }
   function sell(keys){

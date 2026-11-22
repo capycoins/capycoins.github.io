@@ -69,6 +69,8 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:900/300}
 @media (prefers-reduced-motion:reduce){ .toast{transition:none} }
 </style>
 <script src="../theme.js"></script>
+<script src="../format.js"></script>
+<script>window.CC=function(c){return window.CapyFormat?CapyFormat.cc(c):(c/100).toFixed(2)};</script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite">+2 capycoins!</div>
@@ -143,7 +145,7 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:900/300}
     try{localStorage.setItem(KEY,JSON.stringify(w));}catch(e){}
     return w.total;
   }
-  function showBalance(){$('bal').textContent=(readWallet().total/100).toFixed(2)}
+  function showBalance(){$('bal').textContent=CC(readWallet().total)}
 
   /* ---------- state ---------- */
   var state='ready', best=0, t=0, dist=0, speed=0, y=0, vy=0, nextReward=REWARD_EVERY, earned=0;
@@ -173,7 +175,7 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:900/300}
     var sc=Math.floor(dist*.04);
     if(sc>best){best=sc; try{localStorage.setItem(BEST,best);}catch(e){} $('best').textContent=pad(best);}
     $('ovt').textContent='Bonk! Thorny bush.';
-    $('ovp').textContent='You ran '+sc+' points and earned '+(earned/100).toFixed(2)+' capycoins this run.';
+    $('ovp').textContent='You ran '+sc+' points and earned '+CC(earned)+' capycoins this run.';
     $('ovg').textContent='Press Space or tap to try again';
     ov.classList.remove('hide');
   }
@@ -198,7 +200,7 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:900/300}
   function reward(){
     earned+=REWARD_CENTS;
     addCents(REWARD_CENTS); showBalance();
-    $('run').textContent=(earned/100).toFixed(2);
+    $('run').textContent=CC(earned);
     toast.classList.add('show'); clearTimeout(toastTimer);
     toastTimer=setTimeout(function(){toast.classList.remove('show')},1200);
   }
