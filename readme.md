@@ -6,6 +6,8 @@ Minigames:
 * Capybara Dash
 * Capybara Fisher
 * Capybara Stack
+* Daily Spin
+* Whack-A-Capy
 
 ### issues
 If you find any issues please report them here in GitHub! Or, contact me in Discord (username is imperialcapybara). Make sure to tell me that you are reporting an issue in the text of the DM request
