@@ -86,7 +86,7 @@ dialog .row{margin-top:18px}
 <div class="wrap">
 <header>
  <a class="logo" href="index.html" aria-label="capycoins home"><span>capy</span><span class="b">coins</span></a>
- <nav aria-label="Main"><a href="play.html">Play</a><a href="help.html">Help</a><span class="auth" id="auth"><button class="pill" type="button" data-auth="in">Sign in</button><button class="pill fill" type="button" data-auth="up">Sign up</button></span><button class="mode" id="mode" type="button" aria-label="Switch to evening">🌙</button></nav>
+ <nav aria-label="Main"><a href="play.html">Play</a><a href="leaderboard.html">Leaderboard</a><a href="help.html">Help</a><span class="auth" id="auth"><button class="pill" type="button" data-auth="in">Sign in</button><button class="pill fill" type="button" data-auth="up">Sign up</button></span><button class="mode" id="mode" type="button" aria-label="Switch to evening">🌙</button></nav>
 </header>
 </div>
 <main class="wrap">
@@ -147,7 +147,7 @@ function setNote(){
  }
 }
 setNote();addEventListener('capy-wallet-changed',setNote);addEventListener('capy-account',setNote);
-const lines=['Boop! 🧡','The water is perfect today.','Have you tried fishing?','Oranges make everything better.','100¢ makes 1 capycoin!','Psst… the stack game is wobbly.','Five games are ready for you!','Five more minutes in the spring…'];
+const lines=['Boop! 🧡','The water is perfect today.','Have you tried fishing?','Oranges make everything better.','100¢ makes 1 capycoin!','Psst… the stack game is wobbly.','Six games are ready for you!','Five more minutes in the spring…'];
 const specials={5:'Five boops! We are friends now.',15:'You are my favorite human!',30:'Okay okay, go play a game! 🎮',50:'Fifty boops. Legend.'};
 let boops=0,hideT=null,li=0;
 function boop(e){
