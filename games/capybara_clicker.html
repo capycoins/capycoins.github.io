@@ -64,6 +64,7 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
 @media (max-width:520px){ .stats{grid-template-columns:1fr 1fr} .stat.coin{grid-column:1/-1} }
 @media (prefers-reduced-motion:reduce){ .pop{animation-duration:.01s} .toast{transition:none} }
 </style>
+<script src="../theme.js"></script>
 </head>
 <body>
 <div class="toast" id="toast" role="status" aria-live="polite">+1 capycoin!</div>
@@ -74,7 +75,7 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
   </header>
 
   <h1>capybara clicker <span class="beta">BETA</span></h1>
-  <p class="hint">Click or tap the capybara. Each click is 1¢, and 100¢ makes 1 capycoin.</p>
+  <p class="hint">Click or tap the capybara. Each click is 5¢, and 100¢ makes 1 capycoin.</p>
 
   <div class="stats">
     <div class="stat coin"><small>capycoins</small><strong id="coins">0.00</strong></div>
@@ -93,6 +94,7 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
 
 <script>
 (function(){
+  var PER=5;   /* cents earned per click */
   var KEY='capycoins_wallet_v1', OLD='capycoins_clicker_v1', days={}, games={};
   var cents=0, clicks=0, best=0, times=[], saveTimer=null, anim=null, tilt=1, toastTimer=null;
   var $=function(id){return document.getElementById(id)};
@@ -156,7 +158,7 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
   function spawn(x,y){
     if(document.querySelectorAll('.pop').length>36) return;
     var t=document.createElement('span');
-    t.className='pop'; t.textContent='+1¢';
+    t.className='pop'; t.textContent='+'+PER+'¢';
     t.style.left=(x+(Math.random()*40-20))+'px'; t.style.top=y+'px';
     var h=document.createElement('span');
     h.className='pop h'; h.textContent=['♡','✿','✦'][Math.floor(Math.random()*3)];
@@ -174,11 +176,11 @@ h1{font-family:var(--display); font-weight:400; font-size:clamp(2rem,6vw,3rem); 
   }
 
   function hit(x,y){
-    cents++; clicks++;
-    unsaved.c++; unsaved.k++; var k=dkey(); unsaved.d[k]=(unsaved.d[k]|0)+1;
+    var before=cents; cents+=PER; clicks++;
+    unsaved.c+=PER; unsaved.k++; var k=dkey(); unsaved.d[k]=(unsaved.d[k]|0)+PER;
     times.push(performance.now());
     squish(); spawn(x,y);
-    if(cents%100===0) showToast();
+    if(Math.floor(cents/100)>Math.floor(before/100)) showToast();
     render();
     if(clicks%25===0) save();
   }
