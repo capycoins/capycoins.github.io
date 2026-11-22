@@ -132,9 +132,9 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:640/520; touch-actio
 
   /* ---------- tuning (edit values here; all amounts are in cents) ---------- */
   const ROUND=60;                          // seconds per round
-  const VALUE={capy:25, shy:40};           // base cents for each kind of capybara
-  const COMBO_STEP=3, COMBO_MAX=10;        // +3¢ per capybara in a row, up to 10 in a row (so up to +30¢)
-  const BOMB_PENALTY=100;                  // cents lost for hitting a bomb
+  const VALUE={capy:50, shy:80};           // base cents for each kind of capybara
+  const COMBO_STEP=6, COMBO_MAX=10;        // +6¢ per capybara in a row, up to 10 in a row (so up to +60¢)
+  const BOMB_PENALTY=150;                  // cents lost for hitting a bomb
   const fmt=c=>c<100?c+'¢':CC(c)+(c===100?' capycoin':' capycoins');
   const comboValue=(kind,streak)=>VALUE[kind]+COMBO_STEP*Math.min(streak,COMBO_MAX);
 
