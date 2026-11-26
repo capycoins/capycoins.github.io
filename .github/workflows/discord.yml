@@ -31,7 +31,6 @@ jobs:
           ACTOR: ${{ github.actor }}
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
-          COMPARE: ${{ github.event.compare }}
           COMMITS: ${{ toJson(github.event.commits) }}
           PR_NUM: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -54,81 +53,62 @@ jobs:
           REPO_URL: ${{ github.event.repository.html_url }}
         run: |
           trunc() { printf '%s' "$1" | head -c "$2"; }
-          COLOR=5814783
-          DESC=""
+          # Turns text into a Discord quote block (empty input gives nothing)
+          quote() {
+            [ -z "$1" ] && return
+            printf '\n'
+            printf '%s' "$1" | head -c "$2" | sed 's/^/> /'
+          }
+          NL=$'\n'
 
           case "$EVENT" in
             push)
               COUNT=$(echo "$COMMITS" | jq 'length')
               [ "$COUNT" -eq 0 ] && exit 0
-              TITLE="📦 $COUNT new commit(s) on $BRANCH"
-              URL="$COMPARE"
-              DESC=$(echo "$COMMITS" | jq -r '.[] | "[`\(.id[0:7])`](\(.url)) \(.message | split("\n")[0])"' | head -c 3500)
+              MSG=$(echo "$COMMITS" | jq -r --arg b "$BRANCH" '
+                map(
+                  "📦 Commit [`\(.id[0:7])`](<\(.url)>): \"\(.message | split("\n")[0])\"\n" +
+                  "✏️ Committed by **\(.author.name)** on branch `\($b)`"
+                ) | join("\n\n")')
               ;;
             pull_request_target)
-              URL="$PR_URL"
-              DESC=$(trunc "$PR_BODY" 300)
               if [ "$ACTION" = closed ] && [ "$PR_MERGED" = true ]; then
-                TITLE="🟣 PR #$PR_NUM merged: $PR_TITLE"; COLOR=10181046
+                ICON="🟣"; VERB="merged"
               elif [ "$ACTION" = closed ]; then
-                TITLE="🔴 PR #$PR_NUM closed: $PR_TITLE"; COLOR=15158332
+                ICON="🔴"; VERB="closed"
               else
-                TITLE="🟢 PR #$PR_NUM ${ACTION//_/ }: $PR_TITLE"; COLOR=3066993
+                ICON="🟢"; VERB="${ACTION//_/ }"
               fi
+              MSG="$ICON Pull request [#$PR_NUM](<$PR_URL>) **$VERB**: \"$PR_TITLE\"${NL}👤 By **$ACTOR** in \`$REPO\`$(quote "$PR_BODY" 300)"
               ;;
             issues)
-              URL="$ISSUE_URL"
-              DESC=$(trunc "$ISSUE_BODY" 300)
-              if [ "$ACTION" = closed ]; then
-                TITLE="✅ Issue #$ISSUE_NUM closed: $ISSUE_TITLE"; COLOR=15158332
-              else
-                TITLE="🐛 Issue #$ISSUE_NUM $ACTION: $ISSUE_TITLE"; COLOR=15105570
-              fi
+              if [ "$ACTION" = closed ]; then ICON="✅"; else ICON="🐛"; fi
+              MSG="$ICON Issue [#$ISSUE_NUM](<$ISSUE_URL>) **$ACTION**: \"$ISSUE_TITLE\"${NL}👤 By **$ACTOR** in \`$REPO\`$(quote "$ISSUE_BODY" 300)"
               ;;
             issue_comment)
-              TITLE="💬 Comment on #$ISSUE_NUM: $ISSUE_TITLE"
-              URL="$COMMENT_URL"
-              DESC=$(trunc "$COMMENT_BODY" 500)
+              MSG="💬 [Comment](<$COMMENT_URL>) on #$ISSUE_NUM: \"$ISSUE_TITLE\"${NL}👤 By **$ACTOR** in \`$REPO\`$(quote "$COMMENT_BODY" 500)"
               ;;
             pull_request_review)
-              TITLE="🔍 Review on PR #$PR_NUM (${REVIEW_STATE//_/ }): $PR_TITLE"
-              URL="$REVIEW_URL"
-              DESC=$(trunc "$REVIEW_BODY" 500)
+              MSG="🔍 [Review](<$REVIEW_URL>) on PR #$PR_NUM (**${REVIEW_STATE//_/ }**): \"$PR_TITLE\"${NL}👤 By **$ACTOR** in \`$REPO\`$(quote "$REVIEW_BODY" 500)"
               ;;
             create)
-              TITLE="🌿 $REF_TYPE created: $REF_NAME"
-              URL="$REPO_URL"
+              MSG="🌿 New $REF_TYPE created: \`$REF_NAME\`${NL}👤 By **$ACTOR** in \`$REPO\`"
               ;;
             delete)
-              TITLE="🗑️ $REF_TYPE deleted: $REF_NAME"
-              URL="$REPO_URL"
+              MSG="🗑️ $REF_TYPE deleted: \`$REF_NAME\`${NL}👤 By **$ACTOR** in \`$REPO\`"
               ;;
             fork)
-              TITLE="🍴 Forked to $FORK_NAME"
-              URL="$FORK_URL"
+              MSG="🍴 **$ACTOR** forked \`$REPO\` to [$FORK_NAME](<$FORK_URL>)"
               ;;
             watch)
-              TITLE="⭐ New star on $REPO"
-              URL="$REPO_URL"
-              COLOR=16766720
+              MSG="⭐ **$ACTOR** starred [\`$REPO\`](<$REPO_URL>)"
               ;;
             *)
               exit 0
               ;;
           esac
 
-          PAYLOAD=$(jq -n \
-            --arg title "$(trunc "$TITLE" 250)" \
-            --arg desc "$DESC" \
-            --arg url "$URL" \
-            --argjson color "$COLOR" \
-            --arg footer "$REPO · $ACTOR" \
-            '{
-              embeds: [
-                ({title: $title, url: $url, color: $color, footer: {text: $footer}}
-                 + (if $desc == "" then {} else {description: $desc} end))
-              ],
-              allowed_mentions: {parse: []}
-            }')
+          PAYLOAD=$(jq -n --arg content "$(trunc "$MSG" 1900)" \
+            '{content: $content, allowed_mentions: {parse: []}}')
 
           curl -sS -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK"
