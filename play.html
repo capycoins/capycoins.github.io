@@ -143,6 +143,7 @@ main{padding-bottom:30px}
       <h1>Dashboard</h1>
       <p class="lead">Your capycoins at a glance. 100 cents makes 1 capycoin.</p>
       <p class="lead" id="acct" style="margin-top:-4px;font-size:1rem"></p>
+      <p class="lead" id="sync" style="margin-top:2px;font-size:.95rem"></p>
     </div>
 
     <div class="top">
@@ -312,8 +313,11 @@ main{padding-bottom:30px}
 
   $('reset').addEventListener('click',function(){
     if(confirm('Reset your balance and all stats? This cannot be undone.')){
-      try{localStorage.removeItem(KEY); localStorage.removeItem(OLD);}catch(e){}
-      render();
+      try{
+        [KEY,OLD,'capycoins_sync_v1','capycoins_spin_v1','capy_stack_best','capycoins_dash_best',
+         'capycoins_catch_best','capycoins_whack_v1','capycoins_fisher_bag_v1'].forEach(function(k){localStorage.removeItem(k)});
+      }catch(e){}
+      window.dispatchEvent(new CustomEvent('capy-wallet-changed'));
     }
   });
   function acct(){
@@ -321,16 +325,28 @@ main{padding-bottom:30px}
     if(!A||!A.supported){return;}
     if(A.user){
       var nm=A.profile&&A.profile.username;
-      el.append('Signed in as '); var b=document.createElement('b'); b.textContent=nm||A.user.email; el.append(b,'. Your balance is saved to your account.');
+      el.append('Signed in as '); var b=document.createElement('b'); b.textContent=nm||A.user.email; el.append(b,'. Everything below is saved to your account.');
       if(rs) rs.style.display='none';
     }else{
       var a=document.createElement('a'); a.href='index.html'; a.textContent='Sign in'; el.append(a,' to save your capycoins to your account.');
       if(rs) rs.style.display='';
     }
   }
+  function syncState(){
+    var A=window.CapyAccount, el=$('sync'); if(!el) return; el.textContent='';
+    if(!A||!A.supported||!A.user) return;
+    if(A.status==='syncing'){ el.textContent='Saving your progress…'; return; }
+    if(A.status==='saved'){
+      el.textContent='All progress saved to your account ✓'+(A.lastSync?' · '+new Date(A.lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'');
+    }else if(A.status==='partial'){
+      el.textContent='Balance saved. Run supabase_progress.sql once to save the 7-day chart and game stats.';
+    }else if(A.status==='error'){
+      el.textContent='Could not reach your account just now — progress is kept on this device and will retry.';
+    }
+  }
   window.addEventListener('capy-wallet-changed',render);
-  window.addEventListener('capy-account',acct);
-  acct();
+  window.addEventListener('capy-account',function(){acct();syncState();});
+  acct(); syncState();
   window.addEventListener('storage',render);
   window.addEventListener('pageshow',render);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) render(); });

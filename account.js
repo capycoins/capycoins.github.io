@@ -1,23 +1,41 @@
-/* account.js - usernames + saving your capycoin balance to your Supabase account.
+/* account.js - usernames + saving your capycoin progress to your Supabase account.
    Load it AFTER supabaseClient.js (and auth.js, if the page has one):
      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
      <script src="supabaseClient.js"></script>
      <script src="auth.js"></script>
      <script src="account.js"></script>
-   On game pages use data-prompt="false" so a game never pops up the username window. */
+   On game pages use data-prompt="false" so a game never pops up the username window.
+
+   Everything the games keep in localStorage is saved here: the balance, the
+   per-day earnings behind the 7-day chart, per-game earnings, clicks, best
+   clicks per second, best scores, Whack-A-Capy stats, the fishing bag and the
+   daily spin. Supabase needs the one-time supabase_progress.sql migration;
+   if it has not been run yet the balance still saves through add_cents. */
 (function () {
   'use strict';
   var KEY = 'capycoins_wallet_v1', OLD = 'capycoins_clicker_v1', META = 'capycoins_sync_v1';
-  var CHUNK = 200000, NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+  var CHUNK = 200000, NAME_RE = /^[A-Za-z0-9_]{3,16}$/, MAX_DAYS = 60;
+  var GKEYS = {
+    spin: 'capycoins_spin_v1',
+    stack: 'capy_stack_best',
+    dash: 'capycoins_dash_best',
+    catch: 'capycoins_catch_best',
+    whack: 'capycoins_whack_v1',
+    fisher: 'capycoins_fisher_bag_v1'
+  };
+  /* a running game keeps its own copy in memory and writes the whole object
+     back on save, so only pages that are NOT a game replace the per-game cache
+     with the server copy; game pages just push what they have. */
+  var IS_GAME = /\/games\//.test(location.pathname);
   var script = document.currentScript, ASK = !(script && script.dataset.prompt === 'false');
 
   var client = null;
   try { client = supabaseClient; } catch (e) {}      // stays null if the library or keys did not load
 
-  var listeners = [], syncing = false;
+  var listeners = [], syncing = false, lastSig = '';
   var A = window.CapyAccount = {
     supported: !!(client && client.auth && client.from && client.rpc),
-    user: null, profile: null, ready: false, status: 'signed-out',
+    user: null, profile: null, ready: false, status: 'signed-out', lastSync: null,
     onChange: function (cb) { listeners.push(cb); },
     syncNow: syncNow, promptUsername: promptUsername
   };
@@ -27,47 +45,234 @@
   }
   function walletChanged() { window.dispatchEvent(new CustomEvent('capy-wallet-changed')); }
 
+  function num(v) { v = Number(v); return isFinite(v) ? v : 0; }
+  function int(v) { return Number(v) | 0; }
+  function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } }
+  function writeJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  function readInt(key) { try { return parseInt(localStorage.getItem(key), 10) || 0; } catch (e) { return 0; } }
+  function writeInt(key, n) { try { localStorage.setItem(key, String(n)); } catch (e) {} }
+
   /* ---------- the wallet kept in this browser (games write here) ---------- */
   function readW() {
     var w = { total: 0, clicks: 0, best: 0, days: {}, games: {} };
     try {
       var s = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (s && typeof s.total === 'number') { w.total = s.total | 0; w.clicks = s.clicks | 0; w.best = s.best | 0; w.days = s.days || {}; w.games = s.games || {}; }
-      else { var o = JSON.parse(localStorage.getItem(OLD) || 'null'); if (o) { w.total = o.cents | 0; w.clicks = o.clicks | 0; w.best = o.best | 0; w.games.clicker = w.total; } }
+      if (s && typeof s.total === 'number') {
+        w.total = num(s.total); w.clicks = int(s.clicks); w.best = int(s.best);
+        w.days = s.days || {}; w.games = s.games || {};
+      } else {
+        var o = JSON.parse(localStorage.getItem(OLD) || 'null');
+        if (o) { w.total = num(o.cents); w.clicks = int(o.clicks); w.best = int(o.best); w.games.clicker = w.total; }
+      }
     } catch (e) {}
     return w;
   }
-  function setLocalTotal(n) {
-    var w = readW(); w.total = n;
-    try { localStorage.setItem(KEY, JSON.stringify(w)); } catch (e) {}
+  function writeW(w) { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch (e) {} }
+  function setLocalTotal(n) { var w = readW(); w.total = num(n); writeW(w); walletChanged(); }
+
+  /* ---------- game-specific stats (kept under their own keys) ---------- */
+  function readGameStats() {
+    var o = {}, s;
+    s = readJSON(GKEYS.spin);
+    if (s && typeof s.last === 'string' && s.last) o.spin = { last: s.last, prize: int(s.prize) };
+    s = readInt(GKEYS.stack); if (s > 0) o.stack = { best: s };
+    s = readInt(GKEYS.dash); if (s > 0) o.dash = { best: s };
+    s = readInt(GKEYS.catch); if (s > 0) o.catch = { best: s };
+    s = readJSON(GKEYS.whack);
+    if (s) o.whack = { rounds: int(s.rounds), whacks: int(s.whacks), best: int(s.best), streak: int(s.streak) };
+    s = readJSON(GKEYS.fisher);
+    if (s) o.fisher = { caught: int(s.caught), inv: (s.inv && typeof s.inv === 'object') ? s.inv : {} };
+    return o;
+  }
+  function hydrateGameStats(st, gamePage) {
+    if (!st || typeof st !== 'object') return;
+    var cur;
+    if (st.spin && st.spin.last) {                            // the spin page reads this live, so it is always safe
+      cur = readJSON(GKEYS.spin);
+      if (!cur || String(st.spin.last) >= String(cur.last || '')) {
+        writeJSON(GKEYS.spin, { last: String(st.spin.last), prize: int(st.spin.prize) });
+      }
+    }
+    if (gamePage) return;                                    // a running game holds its own copy in memory
+    if (st.stack && int(st.stack.best) > readInt(GKEYS.stack)) writeInt(GKEYS.stack, int(st.stack.best));
+    if (st.dash && int(st.dash.best) > readInt(GKEYS.dash)) writeInt(GKEYS.dash, int(st.dash.best));
+    if (st.catch && int(st.catch.best) > readInt(GKEYS.catch)) writeInt(GKEYS.catch, int(st.catch.best));
+    if (st.whack) {
+      cur = readJSON(GKEYS.whack) || {};
+      writeJSON(GKEYS.whack, {
+        rounds: Math.max(int(cur.rounds), int(st.whack.rounds)),
+        whacks: Math.max(int(cur.whacks), int(st.whack.whacks)),
+        best: Math.max(int(cur.best), int(st.whack.best)),
+        streak: Math.max(int(cur.streak), int(st.whack.streak))
+      });
+    }
+    if (st.fisher) {
+      writeJSON(GKEYS.fisher, {
+        inv: (st.fisher.inv && typeof st.fisher.inv === 'object') ? st.fisher.inv : {},
+        caught: int(st.fisher.caught)
+      });
+    }
+  }
+
+  /* ---------- what the server already knows (meta) ----------
+     meta.base/days/games/clicks = the part of this browser's cache the server
+     has. Anything above it is new, and is ADDED to the server (never overwrites). */
+  function getMeta() { var m = readJSON(META); return (m && typeof m === 'object') ? m : {}; }
+  function setMeta(m) { writeJSON(META, m); }
+
+  function deltas(now, base) {
+    var out = {}, k, d;
+    Object.keys(now || {}).forEach(function (k) {
+      d = num(now[k]) - num((base || {})[k]);
+      if (d > 0) out[k] = d;
+    });
+    return out;
+  }
+  function pruneDays(map) {
+    var keys = Object.keys(map || {}).sort().slice(-MAX_DAYS), out = {};
+    keys.forEach(function (k) { out[k] = num(map[k]); });
+    return out;
+  }
+  function pendingProgress(w, gs, meta) {
+    var b = meta.stats || {}, p = {
+      total: Math.max(0, num(w.total) - num(meta.base)),
+      clicks: Math.max(0, int(w.clicks) - int(meta.clicks)),
+      best: int(w.best),
+      days: deltas(w.days, meta.days),
+      games: deltas(w.games, meta.games),
+      stats: {}
+    };
+    ['stack', 'dash', 'catch'].forEach(function (g) {
+      if (gs[g] && int(gs[g].best) > 0) p.stats[g] = { best: int(gs[g].best) };
+    });
+    if (gs.whack) {
+      var bw = b.whack || {};
+      p.stats.whack = {
+        rounds: Math.max(0, int(gs.whack.rounds) - int(bw.rounds)),
+        whacks: Math.max(0, int(gs.whack.whacks) - int(bw.whacks)),
+        best: int(gs.whack.best),
+        streak: int(gs.whack.streak)
+      };
+    }
+    if (gs.fisher) {
+      var bf = b.fisher || {}, binv = bf.inv || {}, inv = {}, ik = {};
+      Object.keys(gs.fisher.inv || {}).forEach(function (k) { ik[k] = 1; });
+      Object.keys(binv).forEach(function (k) { ik[k] = 1; });          // sold items disappear locally, so check both sides
+      Object.keys(ik).forEach(function (k) {
+        var d = int((gs.fisher.inv || {})[k]) - int(binv[k]);
+        if (d !== 0) inv[k] = d;
+      });
+      p.stats.fisher = { caught: Math.max(0, int(gs.fisher.caught) - int(bf.caught)), inv: inv };
+    }
+    if (gs.spin && gs.spin.last) p.stats.spin = { last: gs.spin.last, prize: int(gs.spin.prize) };
+    return p;
+  }
+  function localSig() {
+    var w = readW(), gs = readGameStats();
+    return JSON.stringify([w.total, w.clicks, w.best, w.days, w.games, gs]);
+  }
+  function resetLocal() {
+    writeW({ total: 0, clicks: 0, best: 0, days: {}, games: {} });
+    Object.keys(GKEYS).forEach(function (g) { try { localStorage.removeItem(GKEYS[g]); } catch (e) {} });
     walletChanged();
   }
-  function getMeta() { try { return JSON.parse(localStorage.getItem(META) || 'null') || {}; } catch (e) { return {}; } }
-  function setMeta(m) { try { localStorage.setItem(META, JSON.stringify(m)); } catch (e) {} }
 
-  /* ---------- saving the balance ----------
-     meta.base = the part of this browser's balance the server already knows about.
-     Anything above it is new, and gets ADDED to the server total (never overwrites it). */
+  /* ---------- saving ---------- */
+  function missingRpc(err) {
+    var m = String((err && (err.message || err.details || err.hint)) || '');
+    return !!err && (err.code === 'PGRST202' || /could not find the function|schema cache/i.test(m));
+  }
+
   async function syncNow() {
     if (!A.supported || !A.user || syncing) return;
     syncing = true; A.status = 'syncing';
     try {
       var uid = A.user.id, meta = getMeta();
-      if (meta.uid && meta.uid !== uid) { setLocalTotal(0); meta = { uid: uid, base: 0 }; }   // leftovers from another account never carry over
-      else if (!meta.uid) { meta = { uid: uid, base: 0 }; }                                      // first time here: claim coins earned before signing in
-      var L0 = readW().total, left = Math.max(0, L0 - (meta.base | 0)), S = null;
-      do {
-        var c = Math.min(left, CHUNK);
-        var r = await client.rpc('add_cents', { delta: c });
-        if (r.error) throw r.error;
-        S = Number(r.data); left -= c;
-      } while (left > 0);
-      var extra = Math.max(0, readW().total - L0);        // coins earned while we were talking to the server
-      setLocalTotal(S + extra); setMeta({ uid: uid, base: S });
-      if (A.profile) A.profile.total_cents = S;
-      A.status = 'saved';
-    } catch (e) { A.status = 'error'; if (window.console) console.warn('capycoins: could not save balance', e); }
-    finally { syncing = false; emit(); }
+      if (meta.uid && meta.uid !== uid) { resetLocal(); meta = { uid: uid, base: 0 }; }   // leftovers from another account never carry over
+      else if (!meta.uid) { meta = { uid: uid, base: 0 }; }                                // first time here: claim coins earned before signing in
+
+      var w0 = readW(), g0 = readGameStats();
+      var p = pendingProgress(w0, g0, meta);
+      var r = await client.rpc('sync_progress', {
+        p_total: p.total, p_days: p.days, p_games: p.games,
+        p_clicks: p.clicks, p_best: p.best, p_stats: p.stats
+      });
+
+      if (r.error) {
+        if (!missingRpc(r.error)) throw r.error;
+        await legacySync(p.total, uid, w0);          // migration not run yet: at least keep the balance safe
+        return;
+      }
+      var snap = r.data;
+      if (!snap || typeof snap !== 'object' || snap.total_cents == null) throw new Error('sync_progress returned no snapshot');
+      applySnapshot(snap, w0, g0, uid);
+      A.status = 'saved'; A.lastSync = new Date().toISOString();
+      lastSig = localSig();
+    } catch (e) {
+      A.status = 'error';
+      if (window.console) console.warn('capycoins: could not save progress', e);
+    } finally {
+      syncing = false;
+      emit();
+    }
+  }
+
+  /* if supabase_progress.sql has not been run, keep saving the balance the old way */
+  async function legacySync(left, uid, w0) {
+    var S = null;
+    left = Math.max(0, left);
+    do {
+      var c = Math.min(left, CHUNK);
+      var r = await client.rpc('add_cents', { delta: c });
+      if (r.error) throw r.error;
+      S = Number(r.data); left -= c;
+    } while (left > 0);
+    var extra = Math.max(0, num(readW().total) - num(w0.total));
+    setLocalTotal(num(S) + extra);
+    setMeta({ uid: uid, base: num(S) });
+    if (A.profile) A.profile.total_cents = num(S);
+    A.status = 'partial';
+    lastSig = localSig();
+  }
+
+  function applySnapshot(snap, w0, g0, uid) {
+    var w = readW(), gs = readGameStats();
+    var snapDays = snap.days || {}, snapGames = snap.games || {}, st = snap.game_stats || {};
+    var newDays = {}, newGames = {}, extra;
+
+    Object.keys(snapDays).forEach(function (d) { newDays[d] = num(snapDays[d]); });
+    Object.keys(w.days).forEach(function (d) {
+      extra = num(w.days[d]) - num(w0.days[d]);             // earned while the request was in flight
+      if (extra > 0) newDays[d] = num(newDays[d]) + extra;
+    });
+    Object.keys(snapGames).forEach(function (g) { newGames[g] = num(snapGames[g]); });
+    Object.keys(w.games).forEach(function (g) {
+      extra = num(w.games[g]) - num(w0.games[g]);
+      if (extra > 0) newGames[g] = num(newGames[g]) + extra;
+    });
+
+    writeW({
+      total: num(snap.total_cents) + Math.max(0, num(w.total) - num(w0.total)),
+      clicks: int(snap.clicks) + Math.max(0, int(w.clicks) - int(w0.clicks)),
+      best: Math.max(int(w.best), int(snap.best_cps)),
+      days: pruneDays(newDays),
+      games: newGames
+    });
+    hydrateGameStats(st, IS_GAME);                           // game pages only refresh the daily spin
+
+    setMeta({
+      v: 2, uid: uid,
+      base: num(snap.total_cents),
+      clicks: int(snap.clicks),
+      best: int(snap.best_cps),
+      days: pruneDays(snapDays),
+      games: snapGames,
+      /* game pages keep their own in-memory counters, so their base stays what
+         this device actually sent; the wallet above was hydrated and is fine. */
+      stats: IS_GAME ? g0 : st
+    });
+    if (A.profile) A.profile.total_cents = num(snap.total_cents);
+    walletChanged();
   }
 
   /* ---------- profile + username ---------- */
@@ -154,11 +359,11 @@
     });
     client.auth.getSession().then(function (r) { if (!A.ready) onSession(r.data && r.data.session, false); }).catch(function () {});
     var tick = 0;
-    setInterval(function () {                                  // save new coins within ~5 seconds, and refresh every 30
+    setInterval(function () {                                  // save new progress within ~5 seconds, refresh from the account every 30
       if (!A.user || document.hidden) return;
       tick++;
-      var pending = readW().total - (getMeta().base | 0);
-      if (pending > 0 || tick % 6 === 0) syncNow();
+      var sig = localSig();
+      if (sig !== lastSig || tick % 6 === 0) syncNow();
     }, 5000);
     document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow(); });
     window.addEventListener('pagehide', function () { syncNow(); });
@@ -167,7 +372,11 @@
       var orig = window.handleSignOut;
       window.handleSignOut = async function () {
         try { await syncNow(); } catch (e) {}
-        try { localStorage.removeItem(KEY); localStorage.removeItem(META); } catch (e) {}
+        try {
+          localStorage.removeItem(KEY); localStorage.removeItem(META);
+          Object.keys(GKEYS).forEach(function (g) { localStorage.removeItem(GKEYS[g]); });
+        } catch (e) {}
+        walletChanged();
         return orig.apply(this, arguments);
       };
     }
