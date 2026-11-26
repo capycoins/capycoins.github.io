@@ -68,7 +68,7 @@ jobs:
               MSG=$(echo "$COMMITS" | jq -r --arg b "$BRANCH" '
                 map(
                   "📦 Commit [`\(.id[0:7])`](<\(.url)>): \"\(.message | split("\n")[0])\"\n" +
-                  "✏️ Committed by **\(.author.name)** on branch `\($b)`"
+                  "✏️ Committed by **\(.author.username // .author.name)** on branch `\($b)`"
                 ) | join("\n\n")')
               ;;
             pull_request_target)
