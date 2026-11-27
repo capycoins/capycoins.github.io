@@ -1,6 +1,6 @@
 /* account.js - usernames + saving your capycoin progress to your Supabase account.
    Load it AFTER supabaseClient.js (and auth.js, if the page has one):
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2"></script>
      <script src="supabaseClient.js"></script>
      <script src="auth.js"></script>
      <script src="account.js"></script>
@@ -9,12 +9,12 @@
    Everything the games keep in localStorage is saved here: the balance, the
    per-day earnings behind the 7-day chart, per-game earnings, clicks, best
    clicks per second, best scores, Whack-A-Capy stats, the fishing bag and the
-   daily spin. Supabase needs the one-time supabase_progress.sql migration;
-   if it has not been run yet the balance still saves through add_cents. */
+   daily spin. Supabase needs the one-time security_hardening.sql migration.
+   The database, rather than localStorage, is authoritative for signed-in users. */
 (function () {
   'use strict';
   var KEY = 'capycoins_wallet_v1', OLD = 'capycoins_clicker_v1', META = 'capycoins_sync_v1';
-  var CHUNK = 200000, NAME_RE = /^[A-Za-z0-9_]{3,16}$/, MAX_DAYS = 60;
+  var NAME_RE = /^[A-Za-z0-9_]{3,16}$/, MAX_DAYS = 60;
   var GKEYS = {
     spin: 'capycoins_spin_v1',
     stack: 'capy_stack_best',
@@ -51,6 +51,13 @@
   function writeJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
   function readInt(key) { try { return parseInt(localStorage.getItem(key), 10) || 0; } catch (e) { return 0; } }
   function writeInt(key, n) { try { localStorage.setItem(key, String(n)); } catch (e) {} }
+  function claimId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 3 | 8);
+      return v.toString(16);
+    });
+  }
 
   /* ---------- the wallet kept in this browser (games write here) ---------- */
   function readW() {
@@ -68,7 +75,6 @@
     return w;
   }
   function writeW(w) { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch (e) {} }
-  function setLocalTotal(n) { var w = readW(); w.total = num(n); writeW(w); walletChanged(); }
 
   /* ---------- game-specific stats (kept under their own keys) ---------- */
   function readGameStats() {
@@ -178,31 +184,50 @@
   }
 
   /* ---------- saving ---------- */
-  function missingRpc(err) {
-    var m = String((err && (err.message || err.details || err.hint)) || '');
-    return !!err && (err.code === 'PGRST202' || /could not find the function|schema cache/i.test(m));
-  }
-
   async function syncNow() {
     if (!A.supported || !A.user || syncing) return;
     syncing = true; A.status = 'syncing';
     try {
       var uid = A.user.id, meta = getMeta();
       if (meta.uid && meta.uid !== uid) { resetLocal(); meta = { uid: uid, base: 0 }; }   // leftovers from another account never carry over
-      else if (!meta.uid) { meta = { uid: uid, base: 0 }; }                                // first time here: claim coins earned before signing in
+      else if (!meta.uid) {
+        /* localStorage is user-controlled. Never import anonymous/local balances
+           into an authenticated account; establish them as the local baseline and
+           let the server snapshot replace them below. */
+        var initialW = readW(), initialG = readGameStats();
+        meta = {
+          v: 3, uid: uid, base: initialW.total, clicks: initialW.clicks,
+          best: initialW.best, days: initialW.days, games: initialW.games,
+          stats: initialG
+        };
+        setMeta(meta);
+      }
 
-      var w0 = readW(), g0 = readGameStats();
-      var p = pendingProgress(w0, g0, meta);
-      var r = await client.rpc('sync_progress', {
-        p_total: p.total, p_days: p.days, p_games: p.games,
-        p_clicks: p.clicks, p_best: p.best, p_stats: p.stats
+      /* Keep the exact claim until it is acknowledged. If the response is lost,
+         retrying uses the same UUID and the database returns the prior result
+         instead of paying the claim twice. */
+      var pending = meta.pending;
+      if (!pending || !pending.id || !pending.progress || !pending.wallet || !pending.gameStats) {
+        var currentW = readW(), currentG = readGameStats();
+        pending = {
+          id: claimId(),
+          progress: pendingProgress(currentW, currentG, meta),
+          wallet: currentW,
+          gameStats: currentG
+        };
+        meta.pending = pending;
+        setMeta(meta);
+      }
+      var p = pending.progress, w0 = pending.wallet, g0 = pending.gameStats;
+      var r = await client.rpc('secure_sync_progress', {
+        p_claim_id: pending.id,
+        p_games: p.games,
+        p_clicks: p.clicks,
+        p_best: p.best,
+        p_stats: p.stats
       });
 
-      if (r.error) {
-        if (!missingRpc(r.error)) throw r.error;
-        await legacySync(p.total, uid, w0);          // migration not run yet: at least keep the balance safe
-        return;
-      }
+      if (r.error) throw r.error;
       var snap = r.data;
       if (!snap || typeof snap !== 'object' || snap.total_cents == null) throw new Error('sync_progress returned no snapshot');
       applySnapshot(snap, w0, g0, uid);
@@ -215,24 +240,6 @@
       syncing = false;
       emit();
     }
-  }
-
-  /* if supabase_progress.sql has not been run, keep saving the balance the old way */
-  async function legacySync(left, uid, w0) {
-    var S = null;
-    left = Math.max(0, left);
-    do {
-      var c = Math.min(left, CHUNK);
-      var r = await client.rpc('add_cents', { delta: c });
-      if (r.error) throw r.error;
-      S = Number(r.data); left -= c;
-    } while (left > 0);
-    var extra = Math.max(0, num(readW().total) - num(w0.total));
-    setLocalTotal(num(S) + extra);
-    setMeta({ uid: uid, base: num(S) });
-    if (A.profile) A.profile.total_cents = num(S);
-    A.status = 'partial';
-    lastSig = localSig();
   }
 
   function applySnapshot(snap, w0, g0, uid) {
@@ -261,7 +268,7 @@
     hydrateGameStats(st, IS_GAME);                           // game pages only refresh the daily spin
 
     setMeta({
-      v: 2, uid: uid,
+      v: 3, uid: uid,
       base: num(snap.total_cents),
       clicks: int(snap.clicks),
       best: int(snap.best_cps),

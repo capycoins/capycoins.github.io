@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>whack-a-capy – capycoins</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
@@ -461,16 +463,14 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:640/520; touch-actio
     ptr.x=(e.clientX-r.left)*W/r.width; ptr.y=(e.clientY-r.top)*H/r.height;
     if(e.pointerType==='mouse') ptr.in=true; else {ptr.in=false; ptr.until=T+.5;}
   }
-  stage.addEventListener('pointermove',e=>{ if(!e.isTrusted) return; if(e.pointerType==='mouse') setPtr(e); });
-  stage.addEventListener('pointerleave',e=>{ if(!e.isTrusted) return; if(e.pointerType==='mouse') ptr.in=false; });
+  stage.addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') setPtr(e); });
+  stage.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') ptr.in=false; });
   stage.addEventListener('pointerdown',e=>{
-    if(!e.isTrusted) return;
     if(e.pointerType==='mouse'&&e.button!==0) return;
     e.preventDefault(); setPtr(e);
     if(state==='play') whack(ptr.x,ptr.y); else { swingAt(ptr.x,ptr.y); act(); }
   });
   window.addEventListener('keydown',e=>{
-    if(!e.isTrusted) return;
     if(e.target&&e.target.tagName==='BUTTON') return;
     if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); if(!e.repeat) act(); return; }
     if(state==='play'&&/^[1-9]$/.test(e.key)&&!e.repeat){
@@ -489,7 +489,7 @@ canvas{display:block; width:100%; height:auto; aspect-ratio:640/520; touch-actio
   Promise.all(imgs.map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve())).then(()=>{ requestAnimationFrame(loop); });
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2"></script>
 <script src="../supabaseClient.js"></script>
 <script src="../account.js" data-prompt="false"></script>
 </body>

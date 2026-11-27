@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>daily spin – capycoins</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -248,8 +248,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
   [0,.09,.18].forEach((d,i)=>tone([523,659,784][i],null,'triangle',.2,.16,d));
   for(let i=0;i<60;i++)confetti.push({x:CX+(Math.random()-.5)*60,y:CX-40,vx:(Math.random()-.5)*420,vy:-200-Math.random()*300,c:['#ffe08a','#ffb7c5','#bfe3b4','#a9ddeb','#fff'][i%5],life:1});
  }
- $('spin').addEventListener('click',e=>{if(!e.isTrusted)return;startSpin();});
- addEventListener('keydown',e=>{if(!e.isTrusted)return;if((e.code==='Space'||e.code==='Enter')&&!(e.target&&e.target.tagName==='BUTTON')){e.preventDefault();if(!e.repeat)startSpin();}});
+ $('spin').addEventListener('click',startSpin);
+ addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter')&&!(e.target&&e.target.tagName==='BUTTON')){e.preventDefault();if(!e.repeat)startSpin();}});
 
  /* countdown to local midnight */
  function tick(){
@@ -265,7 +265,7 @@ canvas{aspect-ratio:640/520; touch-action:none}
  requestAnimationFrame(frame);
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2"></script>
 <script src="../supabaseClient.js"></script>
 <script src="../account.js" data-prompt="false"></script>
 </body></html>

@@ -1,14 +1,14 @@
 
 // 1. Sign Up a new user
 async function handleSignUp() {
-  const email = document.getElementById('email-input').value;
+  const email = document.getElementById('email-input').value.trim();
   const password = document.getElementById('password-input').value;
 
   const { data, error } = await supabaseClient.auth.signUp({
     email: email,
     password: password,
     options: {
-      emailRedirectTo: 'https://imperialcapybara.github.io/capycoins/'
+      emailRedirectTo: new URL('index.html', window.location.href).href
     }
   });
 
@@ -21,7 +21,7 @@ async function handleSignUp() {
 
 // 2. Log In an existing user
 async function handleSignIn() {
-  const email = document.getElementById('email-input').value;
+  const email = document.getElementById('email-input').value.trim();
   const password = document.getElementById('password-input').value;
 
   const { data, error } = await supabaseClient.auth.signInWithPassword({
