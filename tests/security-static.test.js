@@ -22,6 +22,7 @@ assert.match(account, /client\.rpc\('secure_sync_progress'/);
 assert.doesNotMatch(account, /client\.rpc\('(?:add_cents|sync_progress)'/);
 assert.match(account, /meta\.pending = pending/);
 assert.match(account, /crypto\.randomUUID/);
+assert.match(account, /p_tz_offset/);
 assert.match(auth, /new URL\('index\.html', window\.location\.href\)/);
 
 for (const file of html) {
@@ -44,6 +45,8 @@ assert.match(migration, /capycoin_claims/);
 assert.match(migration, /pg_advisory_xact_lock/);
 assert.match(migration, /50000 - v_daily_used/);
 assert.match(migration, /proname in \('add_cents', 'sync_progress'\)/);
+assert.match(migration, /p_tz_offset/);
+assert.match(migration, /_capy_merge_game_stats/);
 
 for (const file of files.filter(file => file !== __filename && /\.(?:js|html|sql)$/.test(file))) {
   assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /service[_-]?role/i,

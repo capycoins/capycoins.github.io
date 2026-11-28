@@ -12,7 +12,7 @@ Minigames:
 ### saving progress
 Signing in saves the whole player profile to Supabase: balance, per-day earnings (the Dashboard's 7-day chart), per-game earnings, clicks, best clicks per second, best scores, Whack-A-Capy stats, the fishing bag and the daily spin. Other devices load it back automatically.
 
-Database setup (one time): run `security_hardening.sql` in the Supabase SQL editor **before** deploying the matching `account.js`. It makes the database authoritative, enables strict row-level security, rate-limits awards, records an audit trail and disables the old arbitrary-increment functions.
+Database setup: run `security_hardening.sql` in the Supabase SQL editor **before** deploying `account.js`. It makes the database authoritative, enables strict row-level security, rate-limits awards, records an audit trail and disables the old arbitrary-increment functions. Re-run it after pulling this update: it now buckets the 7-day chart by the player's local date and accumulates the Whack-A-Capy and Fisher counters instead of overwriting them. The script is safe to run again.
 
 ### security
 The browser and `localStorage` are untrusted. Signed-in balances may only change through `secure_sync_progress`; direct profile balance updates and the legacy `add_cents`/`sync_progress` functions are unavailable to browser roles. Claims use persistent UUIDs so retries cannot pay twice, per-game token buckets limit automation damage, and accounts have a 500-capcoin daily ceiling. See `SECURITY.md` before changing rewards or database policies.

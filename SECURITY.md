@@ -3,7 +3,7 @@
 ## Deployment order
 
 1. Back up the Supabase project.
-2. Run `security_hardening.sql` in the Supabase SQL editor.
+2. Run `security_hardening.sql` in the Supabase SQL editor. It is safe to re-run after updates.
 3. Confirm that authenticated users cannot call `add_cents` or `sync_progress`.
 4. Deploy this branch's `account.js` and HTML files together.
 5. Test sign-up, sign-in, username changes, every game, cross-device sync and the leaderboard with a non-admin account.

@@ -144,7 +144,6 @@
       total: Math.max(0, num(w.total) - num(meta.base)),
       clicks: Math.max(0, int(w.clicks) - int(meta.clicks)),
       best: int(w.best),
-      days: deltas(w.days, meta.days),
       games: deltas(w.games, meta.games),
       stats: {}
     };
@@ -219,13 +218,20 @@
         setMeta(meta);
       }
       var p = pending.progress, w0 = pending.wallet, g0 = pending.gameStats;
-      var r = await client.rpc('secure_sync_progress', {
+      /* the 7-day chart is local to the player, so tell the server which day it is here */
+      var params = {
         p_claim_id: pending.id,
         p_games: p.games,
         p_clicks: p.clicks,
         p_best: p.best,
-        p_stats: p.stats
-      });
+        p_stats: p.stats,
+        p_tz_offset: new Date().getTimezoneOffset()
+      };
+      var r = await client.rpc('secure_sync_progress', params);
+      if (r.error && /p_tz_offset/i.test(String(r.error.message || r.error.details || ''))) {
+        delete params.p_tz_offset;               // older migration: save the rest, days stay on the UTC day
+        r = await client.rpc('secure_sync_progress', params);
+      }
 
       if (r.error) throw r.error;
       var snap = r.data;
