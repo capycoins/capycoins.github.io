@@ -238,8 +238,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
     if(cents>0){addCents(cents); SFX.sell(); showToast('Sold! +'+fmt(cents),'#bfe3b4');}
     saveBag(); renderBag(); updateUI();
   }
-  $('sellAll').addEventListener('click',()=>sell(Object.keys(bag)));
-  $('bag').addEventListener('click',e=>{const b=e.target.closest('.sellbtn'); if(b) sell([b.dataset.k]);});
+  $('sellAll').addEventListener('click',e=>{ if(!e.isTrusted) return; sell(Object.keys(bag)); });
+  $('bag').addEventListener('click',e=>{ if(!e.isTrusted) return; const b=e.target.closest('.sellbtn'); if(b) sell([b.dataset.k]); });
 
   // loot guide
   (function(){
@@ -457,8 +457,8 @@ canvas{aspect-ratio:640/520; touch-action:none}
     while(acc>=1000/60){update(1/60); acc-=1000/60;}
     draw(); requestAnimationFrame(loop);
   }
-  stage.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; e.preventDefault(); act(); });
-  window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.code==='Enter'){ if(e.target&&e.target.tagName==='BUTTON') return; e.preventDefault(); if(!e.repeat) act(); } });
+  stage.addEventListener('pointerdown',e=>{ if(!e.isTrusted) return; if(e.pointerType==='mouse'&&e.button!==0) return; e.preventDefault(); act(); });
+  window.addEventListener('keydown',e=>{ if(!e.isTrusted) return; if(e.code==='Space'||e.code==='Enter'){ if(e.target&&e.target.tagName==='BUTTON') return; e.preventDefault(); if(!e.repeat) act(); } });
 
   const imgs=[].concat(Object.values(FR),Object.values(IM));
   Promise.all(imgs.map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve())).then(()=>{
